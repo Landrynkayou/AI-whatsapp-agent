@@ -1,0 +1,3 @@
+tk
+scikit-learn
+pyautogui
