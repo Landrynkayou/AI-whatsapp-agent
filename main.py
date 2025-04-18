@@ -7,43 +7,69 @@ import pyautogui
 import time
 import re
 import threading
-from pathlib import Path
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.tag import pos_tag
-from sklearn.base import BaseEstimator, TransformerMixin
+from datetime import datetime
+from sqlalchemy import create_engine, Column, Integer, String, Text, Float, DateTime
+from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
 
-# Download NLTK data (only needed once)
-try:
-    nltk.data.find('tokenizers/punkt')
-    nltk.data.find('taggers/averaged_perceptron_tagger')
-except LookupError:
-    nltk.download('punkt')
-    nltk.download('averaged_perceptron_tagger')
+# ====================== DATABASE SETUP ======================
+Base = declarative_base()
 
-# Enhanced model and template loading with error handling
-def load_resources():
-    """Load model and templates with proper error handling"""
-    resources = {}
-    try:
-        with open("model_pipeline.pkl", "rb") as f:
-            resources['model'] = pickle.load(f)
-        with open("categories.json", "r", encoding='utf-8') as f:
-            resources['templates'] = json.load(f)
-        return resources
-    except FileNotFoundError as e:
-        messagebox.showerror("Missing Files", f"Required files not found: {e}")
-        raise
-    except Exception as e:
-        messagebox.showerror("Loading Error", f"Error loading resources: {e}")
-        raise
+class MessageHistory(Base):
+    __tablename__ = 'message_history'
+    id = Column(Integer, primary_key=True)
+    command = Column(Text)
+    generated_message = Column(Text)
+    recipient = Column(String(100))
+    category = Column(String(50))
+    sent_at = Column(DateTime, default=datetime.now)
+    status = Column(String(20), default='pending')
 
-resources = load_resources()
-model_pipeline = resources['model']
-templates = resources['templates']
+class UserSettings(Base):
+    __tablename__ = 'user_settings'
+    id = Column(Integer, primary_key=True)
+    default_delay = Column(Float, default=1.0)
+    retry_count = Column(Integer, default=3)
+    theme = Column(String(20), default='light')
+
+class CustomTemplates(Base):
+    __tablename__ = 'custom_templates'
+    id = Column(Integer, primary_key=True)
+    category = Column(String(50))
+    template_text = Column(Text)
+    created_at = Column(DateTime, default=datetime.now)
+
+# Initialize database
+engine = create_engine('sqlite:///whatsapp_agent.db')
+Session = sessionmaker(bind=engine)
+
+def initialize_database():
+    Base.metadata.create_all(engine)
+    session = Session()
+    
+    if not session.query(UserSettings).first():
+        session.add(UserSettings())
+    
+    if not session.query(CustomTemplates).first():
+        session.add_all([
+            CustomTemplates(category='love', template_text="Hey {name}, thinking of you today ❤️"),
+            CustomTemplates(category='apology', template_text="Hi {name}, I owe you an apology...")
+        ])
+    
+    session.commit()
+    session.close()
+
+initialize_database()
+
+# ====================== CORE FUNCTIONALITY ======================
+# Load model and templates
+with open("model_pipeline.pkl", "rb") as f:
+    model_pipeline = pickle.load(f)
+
+with open("categories.json", "r", encoding='utf-8') as f:
+    templates = json.load(f)
 
 class AdvancedNameExtractor:
-    """Enhanced name extraction using patterns and NLTK"""
     def __init__(self):
         self.patterns = [
             r'(?:send|text|message|tell|say|write|wish|remind|ask)\s+(?:a|an|my)?\s*(?:[\w\s]+?)\s+(?:to|for)\s+([A-Z][a-z]*(?:\s[A-Z][a-z]*)*)',
@@ -53,27 +79,14 @@ class AdvancedNameExtractor:
         ]
         
     def extract(self, text):
-        """Extract name using multiple strategies"""
-        # Try patterns first
         for pattern in self.patterns:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 name = match.group(1).strip()
                 return self.clean_name(name)
-        
-        # Fall back to NLTK POS tagging
-        tokens = word_tokenize(text)
-        tagged = pos_tag(tokens)
-        
-        # Look for proper nouns (NNP)
-        names = [word for word, pos in tagged if pos == 'NNP']
-        if names:
-            return self.clean_name(' '.join(names))
-        
         return "Friend"
     
     def clean_name(self, name):
-        """Clean and format the extracted name"""
         name = re.sub(r"'s$", "", name)
         name = ' '.join([part.capitalize() for part in name.split()])
         name = re.sub(r'[^a-zA-Z\s]', '', name)
@@ -81,83 +94,17 @@ class AdvancedNameExtractor:
 
 name_extractor = AdvancedNameExtractor()
 
-class ContextEnhancer(BaseEstimator, TransformerMixin):
-    """Custom transformer to enhance context understanding"""
-    def fit(self, X, y=None):
-        return self
-    
-    def transform(self, X):
-        return [self._enhance_text(text) for text in X]
-    
-    def _enhance_text(self, text):
-        """Add contextual clues to the text"""
-        enhanced = text.lower()
-        
-        # Add sentiment clues
-        if any(word in enhanced for word in ['sorry', 'apologize', 'regret']):
-            enhanced += " apology"
-        if any(word in enhanced for word in ['love', 'miss you', 'adore']):
-            enhanced += " love"
-        if 'birthday' in enhanced:
-            enhanced += " birthday celebration"
-            
-        return enhanced
-
-def generate_message(command):
-    """Generate context-aware message with improved error handling"""
-    try:
-        # Preprocess and predict
-        processed_command = preprocess_with_context(command)
-        category = model_pipeline.predict([processed_command])[0]
-        
-        if category not in templates:
-            raise ValueError(f"Unknown category: {category}")
-            
-        name = name_extractor.extract(command)
-        template = select_most_relevant_template(command, category)
-        message = template.format(name=name)
-        
-        return message, name
-        
-    except Exception as e:
-        error_msg = f"Error generating message: {str(e)}"
-        return error_msg, "Error"
-
-def preprocess_with_context(text):
-    """Enhanced preprocessing with context preservation"""
-    # Keep important context markers
-    text = text.lower()
-    text = re.sub(r'[^\w\s]', '', text)  # Remove punctuation but keep words
-    return text
-
-def select_most_relevant_template(command, category):
-    """Select template that best matches the command context"""
-    available_templates = templates[category]
-    
-    # Simple keyword matching for now - could be enhanced with embeddings
-    command_words = set(preprocess_with_context(command).split())
-    
-    best_score = -1
-    best_template = available_templates[0]
-    
-    for template in available_templates:
-        template_words = set(preprocess_with_context(template).split())
-        score = len(command_words.intersection(template_words))
-        if score > best_score:
-            best_score = score
-            best_template = template
-    
-    return best_template
-
+# ====================== WHATSAPP AUTOMATION ======================
 class WhatsAppAutomation:
-    """Robust WhatsApp automation with state tracking"""
     def __init__(self):
         self.is_running = False
-        self.retry_count = 3
-        self.delay_between_actions = 1.0
+        session = Session()
+        settings = session.query(UserSettings).first()
+        session.close()
+        self.retry_count = settings.retry_count
+        self.delay_between_actions = settings.default_delay
         
     def send_message(self, contact_name, message):
-        """Send message with error recovery"""
         if self.is_running:
             raise Exception("Another operation is already in progress")
             
@@ -182,131 +129,281 @@ class WhatsAppAutomation:
             self.is_running = False
     
     def _open_whatsapp(self):
-        """Open WhatsApp desktop app"""
         pyautogui.hotkey('win', 's')
         time.sleep(self.delay_between_actions)
         pyautogui.write('WhatsApp', interval=0.1)
         time.sleep(self.delay_between_actions)
         pyautogui.press('enter')
-        time.sleep(7)  # Wait for app to load
+        time.sleep(7)
         
     def _search_contact(self, name):
-        """Search for contact"""
         pyautogui.hotkey('ctrl', 'f')
         time.sleep(self.delay_between_actions)
         pyautogui.write(name, interval=0.2)
-        time.sleep(1)
+        time.sleep(1.5)
         pyautogui.press('tab')
         time.sleep(self.delay_between_actions)
         pyautogui.press('enter')
         time.sleep(2)
         
     def _type_and_send(self, message):
-        """Type and send message"""
         pyautogui.write(message, interval=0.05)
         time.sleep(1)
         pyautogui.press('enter')
         
     def _recover_from_error(self):
-        """Attempt to recover from error state"""
         pyautogui.hotkey('alt', 'f4')
         time.sleep(2)
 
 whatsapp = WhatsAppAutomation()
 
+# ====================== MESSAGE PROCESSING ======================
+def preprocess_with_context(text):
+    text = text.lower()
+    text = re.sub(r'[^\w\s]', '', text)
+    return text
+
+def get_merged_templates():
+    merged = templates.copy()
+    session = Session()
+    custom_templates = session.query(CustomTemplates).all()
+    session.close()
+    
+    for ct in custom_templates:
+        if ct.category in merged:
+            merged[ct.category].append(ct.template_text)
+        else:
+            merged[ct.category] = [ct.template_text]
+    return merged
+
+def select_most_relevant_template(command, category):
+    available_templates = get_merged_templates()[category]
+    command_words = set(preprocess_with_context(command).split())
+    
+    best_score = -1
+    best_template = available_templates[0]
+    
+    for template in available_templates:
+        template_words = set(preprocess_with_context(template).split())
+        score = len(command_words.intersection(template_words))
+        if score > best_score:
+            best_score = score
+            best_template = template
+    
+    return best_template
+
+def generate_message(command):
+    try:
+        processed_command = preprocess_with_context(command)
+        category = model_pipeline.predict([processed_command])[0]
+        
+        if category not in get_merged_templates():
+            raise ValueError(f"Unknown category: {category}")
+            
+        name = name_extractor.extract(command)
+        template = select_most_relevant_template(command, category)
+        message = template.format(name=name)
+        
+        return message, name, category
+        
+    except Exception as e:
+        error_msg = f"Error generating message: {str(e)}"
+        return error_msg, "Error", "error"
+
+# ====================== DATABASE OPERATIONS ======================
+def log_message(command, message, recipient, category, status='pending'):
+    session = Session()
+    try:
+        msg = MessageHistory(
+            command=command,
+            generated_message=message,
+            recipient=recipient,
+            category=category,
+            status=status
+        )
+        session.add(msg)
+        session.commit()
+        return msg.id
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+def update_message_status(msg_id, status):
+    session = Session()
+    try:
+        msg = session.query(MessageHistory).get(msg_id)
+        if msg:
+            msg.status = status
+            session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+def get_message_history(limit=50):
+    session = Session()
+    try:
+        return session.query(MessageHistory)\
+            .order_by(MessageHistory.sent_at.desc())\
+            .limit(limit)\
+            .all()
+    finally:
+        session.close()
+
+# ====================== GUI FUNCTIONS ======================
+def show_history():
+    history_window = tk.Toplevel(root)
+    history_window.title("Message History")
+    history_window.geometry("800x500")
+    
+    tree = ttk.Treeview(history_window, columns=('time', 'recipient', 'category', 'status', 'preview'), show='headings')
+    tree.heading('time', text='Time')
+    tree.heading('recipient', text='Recipient')
+    tree.heading('category', text='Category')
+    tree.heading('status', text='Status')
+    tree.heading('preview', text='Preview')
+    
+    scrollbar = ttk.Scrollbar(history_window, orient=tk.VERTICAL, command=tree.yview)
+    tree.configure(yscroll=scrollbar.set)
+    scrollbar.pack(side='right', fill='y')
+    tree.pack(fill='both', expand=True)
+    
+    for msg in get_message_history():
+        preview = msg.generated_message[:50] + "..." if len(msg.generated_message) > 50 else msg.generated_message
+        tree.insert('', tk.END, values=(
+            msg.sent_at.strftime("%Y-%m-%d %H:%M"),
+            msg.recipient,
+            msg.category,
+            msg.status,
+            preview
+        ))
+    
+    def on_double_click(event):
+        item = tree.selection()[0]
+        values = tree.item(item, 'values')
+        messagebox.showinfo(
+            "Message Details",
+            f"Time: {values[0]}\nRecipient: {values[1]}\n\n{values[4]}",
+            parent=history_window
+        )
+    
+    tree.bind("<Double-1>", on_double_click)
+
+def show_settings():
+    settings_window = tk.Toplevel(root)
+    settings_window.title("Settings")
+    settings_window.geometry("400x300")
+    
+    session = Session()
+    settings = session.query(UserSettings).first()
+    session.close()
+    
+    ttk.Label(settings_window, text="Default Delay (seconds):").pack(pady=(10, 0))
+    delay_var = tk.DoubleVar(value=settings.default_delay)
+    ttk.Entry(settings_window, textvariable=delay_var).pack()
+    
+    ttk.Label(settings_window, text="Retry Count:").pack(pady=(10, 0))
+    retry_var = tk.IntVar(value=settings.retry_count)
+    ttk.Entry(settings_window, textvariable=retry_var).pack()
+    
+    def save_settings():
+        session = Session()
+        try:
+            settings = session.query(UserSettings).first()
+            settings.default_delay = delay_var.get()
+            settings.retry_count = retry_var.get()
+            session.commit()
+            messagebox.showinfo("Saved", "Settings updated successfully", parent=settings_window)
+            settings_window.destroy()
+        except SQLAlchemyError as e:
+            session.rollback()
+            messagebox.showerror("Error", f"Failed to save settings: {str(e)}", parent=settings_window)
+        finally:
+            session.close()
+    
+    ttk.Button(settings_window, text="💾 Save Settings", command=save_settings).pack(pady=20)
+
+def update_output(message, name):
+    output_text.config(state='normal')
+    output_text.delete(1.0, tk.END)
+    output_text.insert(tk.END, f"To: {name}\n\n", 'header')
+    output_text.insert(tk.END, f"{message}\n\n", 'message')
+    output_text.insert(tk.END, "─" * 50 + "\n", 'divider')
+    output_text.insert(tk.END, "Tip: You can edit the message before sending!", 'footer')
+    output_text.config(state='disabled')
+
 def handle_send():
-    """Handle send button click with improved UX"""
     command = command_entry.get().strip()
     if not command:
         messagebox.showwarning("Empty Input", "Please enter a command.")
         return
     
-    # Update UI to show processing
     send_button.config(state='disabled', text="Processing...")
     root.update()
     
-    try:
-        # Generate message in a separate thread to keep UI responsive
-        def generate_and_display():
-            try:
-                generated_msg, name = generate_message(command)
-                
-                # Update UI on main thread
-                root.after(0, lambda: update_output(generated_msg, name))
-                
-                # Ask for confirmation
-                root.after(0, lambda: confirm_send(generated_msg, name))
-                
-            except Exception as e:
-                root.after(0, lambda: show_error(f"Generation error: {str(e)}"))
-            finally:
-                root.after(0, lambda: send_button.config(state='normal', text="✨ Generate & Send"))
-        
-        threading.Thread(target=generate_and_display, daemon=True).start()
-        
-    except Exception as e:
-        show_error(f"Error: {str(e)}")
-        send_button.config(state='normal', text="✨ Generate & Send")
+    def generate_and_display():
+        try:
+            generated_msg, name, category = generate_message(command)
+            
+            root.after(0, lambda: update_output(generated_msg, name))
+            
+            confirm = messagebox.askyesno(
+                "Confirm Send",
+                f"Send this message to {name}?",
+                detail=generated_msg,
+                parent=root
+            )
+            
+            if confirm:
+                progress = tk.Toplevel(root)
+                progress.title("Sending...")
+                tk.Label(progress, text=f"Sending to {name}...").pack(pady=10)
+                progress_bar = ttk.Progressbar(progress, mode='indeterminate')
+                progress_bar.pack(fill='x', padx=20, pady=5)
+                progress_bar.start()
+                root.update()
 
-def update_output(message, name):
-    """Update the output text widget"""
-    output_text.config(state='normal')
-    output_text.delete(1.0, tk.END)
+                # Log message before sending
+                msg_id = log_message(
+                    command=command,
+                    message=generated_msg,
+                    recipient=name,
+                    category=category,
+                    status='sending'
+                )
+                
+                try:
+                    whatsapp.send_message(name, generated_msg)
+                    update_message_status(msg_id, 'sent')
+                    root.after(0, lambda: messagebox.showinfo(
+                        "Success", 
+                        f"Message successfully sent to {name}!",
+                        parent=root
+                    ))
+                except Exception as e:
+                    update_message_status(msg_id, 'failed')
+                    root.after(0, lambda: messagebox.showerror(
+                        "Error", 
+                        f"Failed to send message: {str(e)}",
+                        parent=root
+                    ))
+                finally:
+                    root.after(0, progress.destroy)
+                    
+        except Exception as e:
+            root.after(0, lambda: show_error(f"Error: {str(e)}"))
+        finally:
+            root.after(0, lambda: send_button.config(state='normal', text="✨ Generate & Send"))
     
-    # Format the output nicely
-    output_text.insert(tk.END, f"To: {name}\n\n", 'header')
-    output_text.insert(tk.END, f"{message}\n\n", 'message')
-    
-    # Add metadata
-    output_text.insert(tk.END, "─" * 50 + "\n", 'divider')
-    output_text.insert(tk.END, "Tip: You can edit the message before sending!", 'footer')
-    
-    output_text.config(state='disabled')
-
-def confirm_send(message, name):
-    """Ask for confirmation before sending"""
-    confirm = messagebox.askyesno(
-        "Confirm Send",
-        f"Send this message to {name}?",
-        detail=message,
-        icon='question'
-    )
-    
-    if confirm:
-        # Show sending progress
-        progress = tk.Toplevel(root)
-        progress.title("Sending...")
-        progress.geometry("300x100")
-        tk.Label(progress, text=f"Sending to {name}...").pack(pady=10)
-        progress_bar = ttk.Progressbar(progress, mode='indeterminate')
-        progress_bar.pack(fill='x', padx=20, pady=5)
-        progress_bar.start()
-        root.update()
-        
-        def send_in_thread():
-            try:
-                whatsapp.send_message(name, message)
-                root.after(0, lambda: messagebox.showinfo(
-                    "Success", 
-                    f"Message successfully sent to {name}!",
-                    parent=root
-                ))
-            except Exception as e:
-                root.after(0, lambda: messagebox.showerror(
-                    "Error", 
-                    f"Failed to send message: {str(e)}",
-                    parent=root
-                ))
-            finally:
-                root.after(0, progress.destroy)
-        
-        threading.Thread(target=send_in_thread, daemon=True).start()
+    threading.Thread(target=generate_and_display, daemon=True).start()
 
 def show_error(message):
-    """Show error message"""
     messagebox.showerror("Error", message, parent=root)
 
-# Setup modern UI
+# ====================== MAIN GUI ======================
 root = tk.Tk()
 root.title("AI WhatsApp Agent Pro")
 root.geometry("600x500")
@@ -333,47 +430,34 @@ main_frame = ttk.Frame(root, padding=20)
 main_frame.pack(fill='both', expand=True)
 
 # Title
-title = ttk.Label(
-    main_frame, 
-    text="AI WhatsApp Assistant Pro", 
-    font=FONT_MAIN, 
-    foreground=PRIMARY_COLOR
-)
+title = ttk.Label(main_frame, text="AI WhatsApp Assistant Pro", font=FONT_MAIN, foreground=PRIMARY_COLOR)
 title.pack(pady=(0, 15))
 
 # Input frame
 input_frame = ttk.Frame(main_frame)
 input_frame.pack(fill='x', pady=5)
 
-ttk.Label(
-    input_frame, 
-    text="Enter your message command:", 
-    font=("Segoe UI", 10)
-).pack(anchor='w')
+ttk.Label(input_frame, text="Enter your message command:", font=("Segoe UI", 10)).pack(anchor='w')
 
-command_entry = ttk.Entry(
-    input_frame, 
-    font=FONT_INPUT, 
-    width=50
-)
+command_entry = ttk.Entry(input_frame, font=FONT_INPUT, width=50)
 command_entry.pack(fill='x', pady=5)
 command_entry.insert(0, "Send a birthday message to Daniel")
 
-# Button
-send_button = ttk.Button(
-    main_frame, 
-    text="✨ Generate & Send", 
-    command=handle_send, 
-    style='TButton'
-)
-send_button.pack(pady=10)
+# Buttons
+button_frame = ttk.Frame(main_frame)
+button_frame.pack(pady=10)
+
+send_button = ttk.Button(button_frame, text="✨ Generate & Send", command=handle_send, style='TButton')
+send_button.pack(side='left', padx=5)
+
+history_button = ttk.Button(button_frame, text="📜 History", command=show_history, style='TButton')
+history_button.pack(side='left', padx=5)
+
+settings_button = ttk.Button(button_frame, text="⚙️ Settings", command=show_settings, style='TButton')
+settings_button.pack(side='left', padx=5)
 
 # Output frame
-output_frame = ttk.LabelFrame(
-    main_frame, 
-    text="Generated Message", 
-    padding=10
-)
+output_frame = ttk.LabelFrame(main_frame, text="Generated Message", padding=10)
 output_frame.pack(fill='both', expand=True, pady=5)
 
 output_text = tk.Text(
@@ -397,13 +481,7 @@ output_text.tag_configure('divider', foreground="#cbd5e0")
 output_text.tag_configure('footer', font=("Segoe UI", 9), foreground="#718096")
 
 # Status bar
-status_bar = ttk.Label(
-    main_frame, 
-    text="Ready", 
-    relief='sunken', 
-    anchor='w',
-    font=("Segoe UI", 9)
-)
+status_bar = ttk.Label(main_frame, text="Ready", relief='sunken', anchor='w', font=("Segoe UI", 9))
 status_bar.pack(fill='x', pady=(5, 0))
 
 # Tooltip
@@ -416,5 +494,5 @@ tooltip = ttk.Label(
 )
 tooltip.pack(fill='x', pady=(5, 0))
 
-# Start the UI
+# Start the application
 root.mainloop()
