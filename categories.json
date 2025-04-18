@@ -1,1 +1,134 @@
-{"love": ["Hey {name}, just wanted to say I love you \u2764\ufe0f", "Thinking about you, {name} \ud83d\udc95", "You make every day better, {name}", "Can't stop smiling because of you, {name}"], "apology": ["Hey {name}, I\u2019m really sorry. Can we talk?", "I regret what I said, {name}. Please forgive me.", "Sorry for being off lately, {name}. I\u2019ll do better.", "My sincerest apologies, {name}."], "birthday": ["Happy Birthday {name}! \ud83c\udf89\ud83c\udf82", "Wishing you all the best today, {name}!", "Enjoy your special day, {name}!", "To many more candles, {name} \ud83c\udf82\ud83c\udf89"], "funny": ["Hey {name}, why don\u2019t scientists trust atoms? Because they make up everything! \ud83d\ude02", "You always brighten my day, {name}. Even more than a meme!", "Here\u2019s a joke for you, {name}: Parallel lines have so much in common. It\u2019s a shame they\u2019ll never meet \ud83d\ude05"], "motivational": ["You\u2019ve got this, {name}! \ud83d\udcaa", "Keep pushing, {name}. Greatness awaits.", "Just a reminder that you're awesome, {name}.", "Every step counts, {name}. Keep going!"], "greeting": ["Good morning, {name}! \u2600\ufe0f", "Hey {name}, just saying hello \ud83d\udc4b", "Hope you're having a great day, {name}!", "Hello {name}, thinking of you today!"], "thank_you": ["Thanks a ton, {name}!", "I really appreciate you, {name}.", "Couldn't have done it without you, {name}!", "Just wanted to say thank you, {name} \ud83d\ude4f"], "casual": ["Hey {name}, what\u2019s up?", "How\u2019s it going, {name}?", "Yo {name}, everything good?", "Just checking in on you, {name}."]}
+{
+  "love": [
+    "Hey {name}, just wanted to say I love you \u2764\ufe0f",
+    "Thinking about you, {name} \ud83d\udc95 You mean the world to me.",
+    "You make every day better, {name}. I'm so grateful for you.",
+    "Can't stop smiling because of you, {name} \ud83d\ude0a",
+    "My heart belongs to you, {name} \ud83d\udc98",
+    "Just a reminder: You're amazing, {name} \ud83d\udc96",
+    "Missing you extra today, {name} \ud83d\udc8c",
+    "You're my favorite person, {name} \ud83d\udc91",
+    "Sending you all my love, {name} \ud83d\udc9e",
+    "Forever yours, {name} \ud83d\udc8d"
+  ],
+  "apology": [
+    "Hey {name}, I'm really sorry. Can we talk?",
+    "I regret what I said, {name}. Please forgive me.",
+    "Sorry for being off lately, {name}. I'll do better.",
+    "My sincerest apologies, {name}. I was wrong.",
+    "{name}, I messed up and I want to make it right.",
+    "I owe you an apology, {name}. I'm truly sorry.",
+    "Please accept my apology, {name}. It won't happen again.",
+    "{name}, I was out of line and I'm sorry.",
+    "I feel terrible about what happened, {name}. Can we start over?",
+    "My behavior was unacceptable, {name}. I apologize."
+  ],
+  "birthday": [
+    "Happy Birthday {name}! \ud83c\udf89\ud83c\udf82 Wishing you an amazing year ahead!",
+    "Wishing you all the best today, {name}! Hope it's filled with joy!",
+    "Enjoy your special day, {name}! \ud83c\udf81\ud83c\udf88",
+    "To many more candles, {name} \ud83c\udf82\ud83c\udf89 Happy Birthday!",
+    "Another year wiser! Happy Birthday {name} \ud83e\udd73",
+    "Celebrate yourself today, {name}! Happy Birthday \ud83c\udf8a",
+    "Wishing you health, happiness and success, {name}! \ud83c\udf82",
+    "Hope your birthday is as wonderful as you are, {name}! \ud83d\udc9d",
+    "Age is just a number! Happy Birthday young {name} \ud83c\udf81",
+    "Sending virtual cake your way, {name} \ud83c\udf70 Happy Birthday!"
+  ],
+  "funny": [
+    "Hey {name}, why don't scientists trust atoms? Because they make up everything! \ud83d\ude02",
+    "You always brighten my day, {name}. Even more than a meme!",
+    "Here's a joke for you, {name}: Parallel lines have so much in common. It's a shame they'll never meet \ud83d\ude05",
+    "{name}, what do you call fake spaghetti? An impasta! \ud83c\udf5d",
+    "Why don't eggs tell jokes? They'd crack each other up! \ud83e\udd5a\ud83d\ude02 - for you {name}",
+    "{name}, I told my dog a joke. He said it was ruff. \ud83d\udc36",
+    "What's brown and sticky? A stick! \ud83d\ude06 - thought you'd like this {name}",
+    "{name}, why did the scarecrow win an award? Because he was outstanding in his field! \ud83c\udf3e",
+    "I'm reading a book about anti-gravity, {name}. It's impossible to put down! \ud83d\udcda",
+    "{name}, what's the best thing about Switzerland? I don't know but the flag is a big plus! \ud83c\udde8\ud83c\udded"
+  ],
+  "motivational": [
+    "You've got this, {name}! \ud83d\udcaa Keep pushing forward!",
+    "Keep pushing, {name}. Greatness awaits just around the corner.",
+    "Just a reminder that you're awesome, {name}. Believe in yourself!",
+    "Every step counts, {name}. Keep going! You're making progress.",
+    "Challenges are what make life interesting, {name}. Overcoming them is what makes life meaningful.",
+    "You're stronger than you think, {name}. \ud83d\udcab",
+    "Success is the sum of small efforts repeated daily, {name}. Keep at it!",
+    "Your potential is endless, {name}. Go after what you deserve!",
+    "Tough times don't last, tough people do, {name}. Stay strong!",
+    "The only limit is the one you set yourself, {name}. Dream bigger!"
+  ],
+  "greeting": [
+    "Good morning, {name}! \u2600\ufe0f Hope you have a wonderful day!",
+    "Hey {name}, just saying hello \ud83d\udc4b How's your day going?",
+    "Hope you're having a great day, {name}! \ud83d\ude0a",
+    "Hello {name}, thinking of you today! \ud83d\udcad",
+    "Good evening, {name}! \ud83c\udf19 Sleep well when you do!",
+    "Hi there {name}! Just checking in \ud83d\udc8c",
+    "Greetings {name}! Sending positive vibes your way \u2728",
+    "Hey you! Yes you, {name}! Hope all is well \ud83d\ude04",
+    "Hi {name}! Just wanted to brighten your day \u2600\ufe0f",
+    "Good afternoon, {name}! Hope you're having a productive day \ud83d\udcda"
+  ],
+  "thank_you": [
+    "Thanks a ton, {name}! I really appreciate it \ud83d\ude4f",
+    "I really appreciate you, {name}. Thank you for everything!",
+    "Couldn't have done it without you, {name}! Many thanks!",
+    "Just wanted to say thank you, {name} \ud83d\ude4f Means a lot!",
+    "From the bottom of my heart, thank you {name} \ud83d\udc96",
+    "Your help was invaluable, {name}. Thank you so much!",
+    "I'm so grateful for your support, {name}. Thank you!",
+    "Thanks for being there, {name}. It means everything to me.",
+    "A big thank you, {name}! You're amazing!",
+    "Thank you thank you thank you, {name}! \ud83c\udf89"
+  ],
+  "casual": [
+    "Hey {name}, what's up? How's life treating you?",
+    "How's it going, {name}? Long time no chat!",
+    "Yo {name}, everything good? Just checking in!",
+    "Just checking in on you, {name}. Hope all is well!",
+    "Hey hey {name}! What's new in your world?",
+    "Howdy {name}! Been thinking about you lately.",
+    "Hey there {name}! Got a minute to chat?",
+    "What's cooking, {name}? How's life?",
+    "Long time no see, {name}! How have you been?",
+    "Hey {name}! Just wanted to say hi \ud83d\udc4b"
+  ],
+  "plans": [
+    "Hey {name}, are you free to meet up this weekend?",
+    "Want to grab coffee soon, {name}?",
+    "{name}, are you available for dinner tonight?",
+    "Thinking of going to the movies, {name}. Want to join?",
+    "Hey {name}, when are you free to catch up?",
+    "{name}, let's plan something fun soon! When works for you?",
+    "Are you around this weekend, {name}? Would love to meet!",
+    "{name}, want to hang out soon? What's your schedule like?",
+    "We should plan a get-together, {name}! When are you free?",
+    "Hey {name}, are you up for an adventure this weekend?"
+  ],
+  "reminder": [
+    "Just a reminder, {name}: Don't forget about your appointment!",
+    "Hey {name}, remember to bring the documents today!",
+    "{name}, this is your friendly reminder about our meeting at 3pm.",
+    "Don't forget to call me back, {name}!",
+    "{name}, reminder: It's trash day tomorrow!",
+    "Hey {name}, just reminding you about the deadline!",
+    "{name}, don't forget to pick up milk on your way home!",
+    "Quick reminder, {name}: Your prescription needs refilling.",
+    "{name}, remember we have guests coming over tonight!",
+    "Don't forget to water the plants, {name}!"
+  ],
+  "question": [
+    "Hey {name}, how was your day?",
+    "What are your thoughts on this, {name}?",
+    "{name}, do you need any help with anything?",
+    "How did your presentation go, {name}?",
+    "{name}, what's your opinion on this matter?",
+    "Where would you like to eat, {name}?",
+    "Why did you decide to do that, {name}?",
+    "When are you available to meet, {name}?",
+    "What time should we arrive, {name}?",
+    "How's your new project coming along, {name}?"
+  ]
+}
